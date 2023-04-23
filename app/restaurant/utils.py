@@ -1,0 +1,75 @@
+from decimal import Decimal
+from typing import Dict
+
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.db.models import Sum, Count
+
+from .models import Vote, Restaurant
+from django.utils import timezone
+
+
+def check_has_user_reached_max_vote_limit(user: User) -> bool:
+    """
+    Checks if user has reached the maximum amount of votes allowed per day.
+
+
+    Args:
+        user (User): The user who is voting.
+
+    Returns:
+        True: If user has reached the maximum amount of vote allowed per day.
+        False: If user has NOT reached the maximum amount of vote allowed per day.
+    """
+    today_votes = Vote.objects.filter(user=user, date=timezone.now().date()).first()
+    if not today_votes:
+        return False
+    if today_votes.total_votes >= settings.MAX_VOTES_PER_DAY:
+        return True
+
+
+def calculate_vote_weight(user: User, restaurant: Restaurant) -> Vote:
+    """
+    Calculate the vote weight for a user's vote on a given restaurant.
+
+    Args:
+        user (User): The user who is voting.
+        restaurant (Restaurant): The restaurant that the user is voting for.
+
+    Returns:
+        vote (Vote): The updated or newly created Vote instance.
+    """
+    # Check if the user has already voted for this restaurant today
+    vote = Vote.objects.filter(user=user, restaurant=restaurant, date=timezone.now().date()).first()
+
+    if vote:
+        # If a vote exists, update the total_votes and calculate the new weight
+        vote.total_votes += 1
+        if vote.total_votes == 2:
+            vote.total_weight += Decimal("0.5")
+        elif vote.total_votes >= 3:
+            vote.total_weight += Decimal("0.25")
+        vote.save()
+    else:
+        # If it's the user's first vote for this restaurant today, create a new vote with weight 1
+        vote = Vote.objects.create(user=user, restaurant=restaurant, total_votes=1, total_weight=1)
+
+    return vote
+
+
+def calculate_restaurant_rating(restaurant: Restaurant, date_to=None, date_from=None) -> Decimal:
+    vote_queryset = Vote.objects.filter(restaurant=restaurant)
+
+    if date_from:
+        vote_queryset = vote_queryset.filter(date__gte=date_from)
+
+    if date_to:
+        vote_queryset = vote_queryset.filter(date__lte=date_to)
+
+    rating = vote_queryset.aggregate(
+        total_rating=Sum('total_weight'),
+        total_votes=Sum('total_votes'),
+        unique_voters=Count('user', distinct=True)
+    )
+
+    return rating
