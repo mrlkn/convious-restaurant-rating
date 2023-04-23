@@ -27,6 +27,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
+MAX_VOTES_PER_DAY = int(os.environ.get('MAX_VOTES_PER_DAY', 3))
 
 # Application definition
 
@@ -37,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'restaurant'
 ]
 
 MIDDLEWARE = [
