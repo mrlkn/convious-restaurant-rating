@@ -13,7 +13,9 @@
 ## Architecture
 
 The API is built using Django and the Django REST framework. It consists of two main models: `Restaurant` and `Vote`. The `Restaurant` model represents a restaurant with a name and a description also inherits from the base model to have basic
-history about who created who edited etc. while the `Vote` model represents a user's vote for a specific restaurant on a given date. In order to keep the `Vote` scalable and maintainable I have decided
+history about who created who edited etc. while the `Vote` model represents a user's vote for a specific restaurant on a given date. 
+
+In order to keep the `Vote` scalable and maintainable I have decided
 to create `Vote` object for each day that user voted for a restaurant. This way in worst case scenario we can have (user x restaurant) times of Vote in a single day.
 In a real world application I would divide hot data from the old ones in order to optimize our queries.  
 
