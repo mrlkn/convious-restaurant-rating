@@ -1,25 +1,39 @@
-from typing import Dict, Any
-
 from decimal import Decimal
+from typing import Any, Dict
+
 from django.contrib.auth.models import User
+from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from .models import Restaurant
-from rest_framework import serializers
-
 from .utils import calculate_restaurant_rating
 
 
 class DateQueryParamSerializer(serializers.Serializer):
+    """
+    Serializer to validate the query parameters that we get from the API.
+
+    Basically, this validates that we get datetime in correct format and makes sure date_from greater than date_to.
+    """
+
     date_to = serializers.DateField(format="%Y-%m-%d", required=False)
     date_from = serializers.DateField(format="%Y-%m-%d", required=False)
 
-    def validate(self, data):
-        date_to = data.get('date_to')
-        date_from = data.get('date_from')
+    def validate(self, data: Dict[str, Any]) -> Dict:
+        """
+        Validate the date_to and date_from to if both is provided make sure date_from is greater than date_to
+
+        Args:
+            data: data to be validated.
+
+        Returns:
+            A newly created restaurant instance.
+        """
+        date_to = data.get("date_to")
+        date_from = data.get("date_from")
 
         if date_to and date_from and date_from < date_to:
-            raise ValidationError('date_from must be greater than date_to')
+            raise ValidationError("date_from must be greater than date_to")
 
         return data
 
@@ -27,7 +41,7 @@ class DateQueryParamSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name']
+        fields = ["id", "email", "first_name", "last_name"]
 
 
 class RestaurantSerializer(serializers.ModelSerializer):
@@ -36,8 +50,8 @@ class RestaurantSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Restaurant
-        fields = '__all__'
-        extra_fields = ['rating']
+        fields = "__all__"
+        extra_fields = ["rating"]
 
     def create(self, validated_data: Dict[str, Any]) -> Restaurant:
         """
@@ -49,14 +63,14 @@ class RestaurantSerializer(serializers.ModelSerializer):
         Returns:
             A newly created restaurant instance.
         """
-        user = self.context['request'].user
+        user = self.context["request"].user
         return Restaurant.objects.create(
-            created_by=user,
-            updated_by=user,
-            **validated_data
+            created_by=user, updated_by=user, **validated_data
         )
 
-    def update(self, instance: Restaurant, validated_data: Dict[str, Any]) -> Restaurant:
+    def update(
+        self, instance: Restaurant, validated_data: Dict[str, Any]
+    ) -> Restaurant:
         """
         Update the given restaurant instance with the provided validated data.
 
@@ -67,9 +81,9 @@ class RestaurantSerializer(serializers.ModelSerializer):
         Returns:
             The updated restaurant instance.
         """
-        user = self.context['request'].user
-        instance.name = validated_data.get('name', instance.name)
-        instance.description = validated_data.get('description', instance.description)
+        user = self.context["request"].user
+        instance.name = validated_data.get("name", instance.name)
+        instance.description = validated_data.get("description", instance.description)
         instance.updated_by = user
         instance.save()
         return instance
@@ -90,6 +104,5 @@ class RestaurantRatingSerializer(RestaurantSerializer):
 
 class RestaurantVoteSerializer(serializers.Serializer):
     restaurant = serializers.PrimaryKeyRelatedField(
-        queryset=Restaurant.objects.all(),
-        required=True
+        queryset=Restaurant.objects.all(), required=True
     )

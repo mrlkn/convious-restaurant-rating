@@ -18,3 +18,7 @@ media/
 
 # .env file
 .env
+
+# coverage
+.coverage
+
